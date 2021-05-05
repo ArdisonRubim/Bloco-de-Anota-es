@@ -12,6 +12,7 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   List _listaAnotacoes = []; // Criando lista vazia
   TextEditingController _controllerAnotacao = TextEditingController(); // Capturando o que o usuario digitou
+  Map<String, dynamic> _ultimaAnotacao = Map();
 
   Future<File> _file() async {
     // Definindo local de armazenamento
@@ -51,8 +52,105 @@ class _HomeState extends State<Home> {
   }
 
   Widget criarAnotacao(context, index) {
-    return ListTile(
-      title: Text(_listaAnotacoes[index]['titulo']),
+    // GERANDO CHAVE ALEATÓRIA PARA EXCLUSAO
+    final chave = DateTime.now().microsecondsSinceEpoch.toString();
+    return Dismissible(
+        key: Key(chave), // Chave aleatória para exclusão ou atualização
+        direction: DismissDirection.horizontal,
+        background: Container(
+          color: Colors.green,
+          padding: EdgeInsets.all(16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.start, // Icon ao final do conteudo
+            children: <Widget>[
+              Icon(Icons.edit, color: Colors.white,) // Icon
+            ],
+          ),
+        ),
+        secondaryBackground: Container(
+          color: Colors.red,
+          padding: EdgeInsets.all(16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end, // Icon ao final do conteudo
+            children: <Widget>[
+              Icon(Icons.delete, color: Colors.white,) // Icon
+            ],
+          ),
+        ),
+
+        // Removendo anotacao da lista
+        onDismissed: (direction){
+
+          if ( direction == DismissDirection.endToStart ) {
+
+            // Deletando Anotacao
+
+            // Recuperar antes de excluir
+              _ultimaAnotacao = _listaAnotacoes[index];
+
+              _listaAnotacoes.removeAt(index);
+            _salvarAnotacaoConcluida();
+
+            // Desfazendo exclusão
+            final alert = SnackBar(
+              content: Text("Anotação removida com sucesso!"),
+              duration: Duration(seconds: 2),
+
+              action: SnackBarAction(
+                  label: "Desfazer",
+                  onPressed: () {
+                    // Restaurando anotacao
+                    setState(() {
+                      _listaAnotacoes.insert(index, _ultimaAnotacao);
+                    });
+
+                  }
+              ),
+            );
+            // Alert de exclusão
+            Scaffold.of(context).showSnackBar(alert);
+
+          }else if ( direction == DismissDirection.startToEnd) {
+
+            _controllerAnotacao.text = _listaAnotacoes[index]["titulo"];
+            showDialog(
+                context: context,
+                builder: (context) {
+                  return AlertDialog(
+                    title: Text("Atualizar anotação"),
+                    content: TextField(
+                      controller: _controllerAnotacao,
+                      onChanged: (text) {},
+                    ),
+                    actions: <Widget>[
+                      // Botões
+                      FlatButton(
+                          color: Colors.limeAccent,
+                          child: Text(
+                            "Confirmar",
+                            style: TextStyle(color: Colors.blue),
+                          ),
+                          onPressed: () {
+                            //_listaAnotacoes.insert(index, _controllerAnotacao.text );
+                            _salvarAnotacao();
+                            _listaAnotacoes.removeAt(index);
+                            _salvarAnotacaoConcluida();
+                            Navigator.pop(context); // Fechando caixa de diálogo
+                          }
+
+                      ),
+                    ],
+                  );
+                });
+          }
+        },
+
+
+
+
+        child: ListTile(
+          title: Text(_listaAnotacoes[index]['titulo']),
+        )
     );
   }
 
